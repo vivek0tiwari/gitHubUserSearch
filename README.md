@@ -1,2 +1,0 @@
-# gitHubUserSearch
-Created with CodeSandbox
