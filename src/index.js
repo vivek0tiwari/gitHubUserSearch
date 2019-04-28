@@ -1,91 +1,117 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import CardGrid from "./CardGrid";
-import Container from "react-bootstrap/Container";
-import Select from "react-select";
-import "./styles.css";
+import { Container, Spinner, Row, Alert } from "react-bootstrap";
 
-var searchModule = (function(Urls) {
-  function searchUser(param) {
-    return fetch(Urls.search + "?q=" + param, {
-      headers: {
-        Origin: "codesandbox.io"
-      }
-    });
-  }
-  function getUserDetails(userName) {
-    return fetch(Urls.userDetails + `/${{ userName }}`, {
-      headers: {
-        Origin: "codesandbox.io"
-      }
-    });
-  }
-  return {
-    searchUser: searchUser
-  };
-})({
+import SearchBar from './SearchBar'
+import Modal from "./Modal"
+import SortComponent from "./SortComponent"
+import "./styles.css";
+import gitHubUserModule from './gitHubUserModule'
+import sorter from './sorter';
+
+const UlrConf = {
   search: "https://api.github.com/search/users",
   userDetails: "https://api.github.com/users"
-});
+}
+const gitHubClient = gitHubUserModule(UlrConf);
+const options = [
+  { value: "asc", label: "Low to High" },
+  { value: "desc", label: "High to Low" }
+];
+
+
 
 export default class App extends React.Component {
   constructor(props) {
     super(props);
 
     this.state = {
+      sortingOrder: null,
       loading: false,
       users: [],
       hasError: false,
       showModal: false,
       selectedUser: {}
     };
-    this.onSearch = this.onSearch.bind(this);
-    this.onSelect = this.onSelect.bind(this);
-    this.sortBy = this.sortBy.bind(this);
   }
+  
   onSearch = e => {
+    e.preventDefault();
+    e.stopPropagation();
     if (e.key === "Enter") {
       this.setState({ loading: true });
-      searchModule
+      gitHubClient
         .searchUser(e.target.value)
         .then(res => res.json())
         .then(data => {
-          this.setState({ users: data.items, loading: false });
-          console.log(data.items);
+          const users = data.items.map(user =>{
+            // this is immediately invoke function
+            return (({ login, avatar_url, score }) => (
+              { login, avatar_url, score })
+              )(user)
+          })
+          this.setState(() => ({ users: users, loading: false, hasError: false }));
         })
-        .catch(e => console.log(e));
+        .catch(
+          e => {
+            console.log(e)
+            this.setState(() => ({ hasError: true, loading: false }))
+          })
     }
   };
-  sortBy = data => {
-    console.log(data);
-    const { users } = this.state;
-    users = users.sort((a, b) => {
-      const A = a.score,
-        B = b.score;
-
-      if (A < B) return -1;
-      if (A > B) return 1;
-      return 0;
-    });
+  
+  sortUser = (e) => {
+    // e.preventDefault();
+    // e.stopPropagation();
+    debugger
+    const sortingOrder = e.target.value;
+    let  users  = [...this.state.users];
+    console.log('Before sorting', users[0], sortingOrder);
+    users = users.sort(sorter('score', sortingOrder));
+    console.log('After sorting', users[0]);
+    this.setState((e) => ({ sortingOrder, users}));
   };
-  onSelect = user => {};
+
+  onSelect = (selectedUser) => {
+    gitHubClient
+        .getUserDetails(selectedUser.login)
+        .then(res => res.json())
+        .then(data => {
+          const selectedUser = (({following, followers, public_repos, login, site_admin}) =>({following, followers, public_repos, login, site_admin}))(data)
+          this.setState(() => ({  showModal: true, selectedUser}));
+        })
+        .catch( e => {
+          console.log(e)
+          this.setState(() => ({ hasError: true, loading: false }))
+        });
+  };
+
+  closeModal = () =>{this.setState(() => ({  showModal: false}))}
+  renderNoResult = () => {
+    return <Alert variant='secondary'>
+                No result found
+            </Alert>};
+  renderSearchResult =()=>{
+    const {sortingOrder, users} = this.state;
+      return users.length?<div>
+                <SortComponent options={options} onChange={this.sortUser} value={sortingOrder}/>
+                <Row><CardGrid users={users} onCardSelect={this.onSelect} /></Row>
+            </div>:this.renderNoResult();
+  }
   render() {
-    const options = [
-      { value: "asc", label: "Low to High" },
-      { value: "dis", label: "High to Low" }
-    ];
     return (
       <div className="App">
-        <input type="text" onKeyUp={this.onSearch.bind(null)} />
-        <div>sortBy</div>
-        <Select options={options} onChange={this.sortBy.bind(null)} />
+        <SearchBar onSearch = {this.onSearch.bind(null)}/>
+        
         <Container>
           {this.state.loading ? (
-            <div>Loading...</div>
+            <Spinner animation="border" />
           ) : (
-            <CardGrid users={this.state.users} onCardSelect={this.onSelect} />
+            this.renderSearchResult()
           )}
         </Container>
+        <Modal {...this.state.selectedUser} handleClose={this.closeModal} showModal={this.state.showModal}/>
       </div>
     );
   }

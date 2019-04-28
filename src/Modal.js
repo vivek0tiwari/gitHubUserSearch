@@ -1,10 +1,10 @@
 import React from "react";
-import ReactDOM from "react-dom";
 import Modal from "react-bootstrap/Modal";
+import Button from 'react-bootstrap/Button';
 import "./styles.css";
 export default function UserCard(props) {
   return (
-    <Modal show={props.show} onHide={props.handleClose}>
+    <Modal show={props.showModal} onHide={props.handleClose}>
       <Modal.Header closeButton>
         <Modal.Title>{props.login}</Modal.Title>
       </Modal.Header>

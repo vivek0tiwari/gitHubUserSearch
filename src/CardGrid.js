@@ -3,27 +3,24 @@ import ReactDOM from "react-dom";
 
 import "./styles.css";
 import UserCard from "./Card";
-import CardColumns from "react-bootstrap/CardColumns";
+import { Row, Col } from "react-bootstrap";
 export default function CardGrid(props) {
   function renderCards() {
     console.log(props);
     if (props.users && props.users.length) {
       return props.users.map((user, i) => {
         return (
+          <Col ms={4} key={`col_${i}`}>
           <UserCard
             data={{ ...user }}
             onSelect={props.onCardSelect.bind(null)}
             key={`card_${i}`}
-          />
+          /></Col>
         );
       });
     } else {
-      return (
-        <div className="alert alert-secondary" role="alert">
-          No result Found
-        </div>
-      );
+      return ;
     }
   }
-  return <CardColumns>{renderCards()}</CardColumns>;
+  return <Row>{renderCards()}</Row>;
 }
