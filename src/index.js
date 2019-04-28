@@ -43,7 +43,7 @@ export default class App extends React.Component {
       this.setState({ loading: true });
       gitHubClient
         .searchUser(e.target.value)
-        .then(res => res.json())
+        .then(res => res.json()) // todo: check for the http status
         .then(data => {
           const users = data.items.map(user =>{
             // this is immediately invoke function
@@ -76,7 +76,7 @@ export default class App extends React.Component {
   onSelect = (selectedUser) => {
     gitHubClient
         .getUserDetails(selectedUser.login)
-        .then(res => res.json())
+        .then(res => res.json()) // todo: check for the http status
         .then(data => {
           const selectedUser = (({following, followers, public_repos, login, site_admin}) =>({following, followers, public_repos, login, site_admin}))(data)
           this.setState(() => ({  showModal: true, selectedUser}));
